@@ -3,9 +3,9 @@
 ## Phase 1: Setup
 
 - [x] 1.1 Create `src/models.py` — Task dict helpers and `next_id()` function
-- [ ] 1.2 Create `src/storage.py` — `load_tasks()` and `save_tasks(tasks)` functions
-- [ ] 1.3 Create `src/cli.py` — Click group entry point (no commands yet)
-- [ ] 1.4 Create `tests/test_storage.py` — unit tests for load/save (empty file, write+read roundtrip)
+- [x] 1.2 Create `src/storage.py` — `load_tasks()` and `save_tasks(tasks)` functions
+- [x] 1.3 Create `src/cli.py` — Click group entry point (no commands yet)
+- [x] 1.4 Create `tests/test_storage.py` — unit tests for load/save (empty file, write+read roundtrip)
 
 ## Phase 2: Core Commands
 
@@ -33,3 +33,6 @@
 |------|-------------|--------|------|
 | —    | Plan created | — | 2026-03-15 |
 | 1.1  | Create src/models.py | 601fa75 | 2026-03-15 |
+| 1.2  | Create src/storage.py | 074901c | 2026-03-15 |
+| 1.3  | Create src/cli.py | 074901c | 2026-03-15 |
+| 1.4  | Create tests/test_storage.py | 074901c | 2026-03-15 |

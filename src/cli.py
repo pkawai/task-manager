@@ -44,5 +44,32 @@ def list_tasks(status):
         )
 
 
+@cli.command()
+@click.argument("task_id", type=int)
+def done(task_id):
+    """Mark a task as done."""
+    tasks = load_tasks()
+    for t in tasks:
+        if t["id"] == task_id:
+            t["status"] = "done"
+            save_tasks(tasks)
+            click.echo(f"Task #{task_id} marked as done.")
+            return
+    click.echo(f"Error: task #{task_id} not found.", err=True)
+
+
+@cli.command()
+@click.argument("task_id", type=int)
+def delete(task_id):
+    """Delete a task."""
+    tasks = load_tasks()
+    remaining = [t for t in tasks if t["id"] != task_id]
+    if len(remaining) == len(tasks):
+        click.echo(f"Error: task #{task_id} not found.", err=True)
+        return
+    save_tasks(remaining)
+    click.echo(f"Task #{task_id} deleted.")
+
+
 if __name__ == "__main__":
     cli()

@@ -49,3 +49,29 @@ def test_list_filter_by_status(runner):
     assert "Pending task" in result.output
     result = runner.invoke(cli, ["list", "--status", "done"])
     assert "No tasks found." in result.output
+
+
+def test_done_marks_task(runner):
+    runner.invoke(cli, ["add", "Finish homework"])
+    result = runner.invoke(cli, ["done", "1"])
+    assert result.exit_code == 0
+    assert "Task #1 marked as done." in result.output
+
+
+def test_done_not_found(runner):
+    result = runner.invoke(cli, ["done", "99"])
+    assert "not found" in result.output
+
+
+def test_delete_removes_task(runner):
+    runner.invoke(cli, ["add", "Temporary task"])
+    result = runner.invoke(cli, ["delete", "1"])
+    assert result.exit_code == 0
+    assert "Task #1 deleted." in result.output
+    list_result = runner.invoke(cli, ["list"])
+    assert "No tasks found." in list_result.output
+
+
+def test_delete_not_found(runner):
+    result = runner.invoke(cli, ["delete", "99"])
+    assert "not found" in result.output

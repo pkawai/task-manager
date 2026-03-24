@@ -29,7 +29,7 @@ pip install -r requirements.txt
 ```bash
 # Add a task
 python -m src.cli add "Buy groceries"
-python -m src.cli add "Finish report" --priority high --due 2026-03-20
+python -m src.cli add "Finish report" --priority high --due 2026-03-28
 
 # List all tasks
 python -m src.cli list
@@ -38,16 +38,10 @@ python -m src.cli list
 python -m src.cli list --status pending
 
 # Mark a task as done
-python -m src.cli done <task-id>
+python -m src.cli done 1
 
 # Delete a task
-python -m src.cli delete <task-id>
-
-# Edit a task
-python -m src.cli edit <task-id> --title "Updated title" --priority low
-
-# Search tasks
-python -m src.cli search "groceries"
+python -m src.cli delete 1
 ```
 
 ## Running Tests

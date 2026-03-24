@@ -1,5 +1,6 @@
+from datetime import date
 from flask import Flask, render_template, request, redirect, url_for
-from src.models import make_task, next_id
+from src.models import make_task, next_id, sort_tasks
 from src.storage import load_tasks, save_tasks
 
 app = Flask(__name__)
@@ -8,17 +9,42 @@ app = Flask(__name__)
 @app.route("/")
 def index():
     status_filter = request.args.get("status", "all")
+    search_query = request.args.get("q", "").strip()
     tasks = load_tasks()
+
+    # Backfill tag field for older tasks
+    for t in tasks:
+        if "tag" not in t:
+            t["tag"] = None
+
     if status_filter in ("pending", "done"):
         filtered = [t for t in tasks if t["status"] == status_filter]
     else:
         filtered = tasks
+
+    if search_query:
+        q = search_query.lower()
+        filtered = [t for t in filtered if q in t["title"].lower() or (t.get("tag") and q in t["tag"].lower())]
+
+    filtered = sort_tasks(filtered)
+
     counts = {
         "all": len(tasks),
         "pending": sum(1 for t in tasks if t["status"] == "pending"),
         "done": sum(1 for t in tasks if t["status"] == "done"),
     }
-    return render_template("index.html", tasks=filtered, status_filter=status_filter, counts=counts)
+
+    all_tags = sorted(set(t.get("tag") for t in tasks if t.get("tag")))
+
+    return render_template(
+        "index.html",
+        tasks=filtered,
+        status_filter=status_filter,
+        counts=counts,
+        search_query=search_query,
+        today=date.today().isoformat(),
+        all_tags=all_tags,
+    )
 
 
 @app.route("/add", methods=["POST"])
@@ -26,11 +52,28 @@ def add():
     title = request.form.get("title", "").strip()
     priority = request.form.get("priority", "medium")
     due = request.form.get("due", "").strip() or None
+    tag = request.form.get("tag", "").strip() or None
     if title:
         tasks = load_tasks()
-        tasks.append(make_task(next_id(tasks), title, priority=priority, due=due))
+        tasks.append(make_task(next_id(tasks), title, priority=priority, due=due, tag=tag))
         save_tasks(tasks)
     return redirect(url_for("index"))
+
+
+@app.route("/edit/<int:task_id>", methods=["POST"])
+def edit(task_id):
+    tasks = load_tasks()
+    for t in tasks:
+        if t["id"] == task_id:
+            title = request.form.get("title", "").strip()
+            if title:
+                t["title"] = title
+            t["priority"] = request.form.get("priority", t["priority"])
+            t["due"] = request.form.get("due", "").strip() or None
+            t["tag"] = request.form.get("tag", "").strip() or None
+            break
+    save_tasks(tasks)
+    return redirect(request.referrer or url_for("index"))
 
 
 @app.route("/done/<int:task_id>", methods=["POST"])
@@ -52,4 +95,4 @@ def delete(task_id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=8080)

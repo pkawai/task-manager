@@ -1,5 +1,5 @@
 from datetime import date
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 from src.models import make_task, next_id, sort_tasks
 from src.storage import load_tasks, save_tasks
 
@@ -12,10 +12,12 @@ def index():
     search_query = request.args.get("q", "").strip()
     tasks = load_tasks()
 
-    # Backfill tag field for older tasks
+    # Backfill missing fields for older tasks
     for t in tasks:
         if "tag" not in t:
             t["tag"] = None
+        if "order" not in t or t["order"] is None:
+            t["order"] = t["id"]
 
     if status_filter in ("pending", "done"):
         filtered = [t for t in tasks if t["status"] == status_filter]
@@ -55,7 +57,12 @@ def add():
     tag = request.form.get("tag", "").strip() or None
     if title:
         tasks = load_tasks()
-        tasks.append(make_task(next_id(tasks), title, priority=priority, due=due, tag=tag))
+        new_id = next_id(tasks)
+        # New tasks get order 0 (top of list), shift others down
+        for t in tasks:
+            if t["status"] == "pending":
+                t["order"] = t.get("order", t["id"]) + 1
+        tasks.append(make_task(new_id, title, priority=priority, due=due, tag=tag, order=0))
         save_tasks(tasks)
     return redirect(url_for("index"))
 
@@ -74,6 +81,20 @@ def edit(task_id):
             break
     save_tasks(tasks)
     return redirect(request.referrer or url_for("index"))
+
+
+@app.route("/reorder", methods=["POST"])
+def reorder():
+    """Accept a JSON list of task IDs in their new display order."""
+    data = request.get_json()
+    task_ids = data.get("order", [])
+    tasks = load_tasks()
+    id_to_task = {t["id"]: t for t in tasks}
+    for i, tid in enumerate(task_ids):
+        if tid in id_to_task:
+            id_to_task[tid]["order"] = i
+    save_tasks(tasks)
+    return jsonify({"ok": True})
 
 
 @app.route("/done/<int:task_id>", methods=["POST"])

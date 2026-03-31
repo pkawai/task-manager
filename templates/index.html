@@ -19,6 +19,7 @@
       --shadow: rgba(0,0,0,0.07);
       --shadow-hover: rgba(0,0,0,0.1);
       --badge-bg: #f0f2f5;
+      --drop-zone: #e8e6ff;
     }
 
     [data-theme="dark"] {
@@ -31,6 +32,7 @@
       --shadow: rgba(0,0,0,0.3);
       --shadow-hover: rgba(0,0,0,0.5);
       --badge-bg: #33334d;
+      --drop-zone: #33305c;
     }
 
     body {
@@ -168,6 +170,14 @@
     }
     .filter-btn.active .count-badge { background: rgba(255,255,255,0.25); color: #fff; }
 
+    /* Drag hint */
+    .drag-hint {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--text-light);
+      margin-bottom: 10px;
+    }
+
     /* Task list */
     .task-list { display: flex; flex-direction: column; gap: 10px; }
 
@@ -178,9 +188,10 @@
       box-shadow: 0 1px 6px var(--shadow);
       display: flex;
       align-items: center;
-      gap: 14px;
-      transition: box-shadow 0.15s;
+      gap: 12px;
+      transition: box-shadow 0.15s, opacity 0.15s, transform 0.15s;
       border-left: 4px solid transparent;
+      user-select: none;
     }
     .task-card:hover { box-shadow: 0 4px 14px var(--shadow-hover); }
     .task-card.done-card { opacity: 0.55; border-left-color: #22c55e; }
@@ -190,6 +201,46 @@
     .task-card.done-card { border-left-color: #22c55e !important; }
     .task-card.overdue { background: #fff5f5; }
     [data-theme="dark"] .task-card.overdue { background: #3a2020; }
+
+    /* Drag styles */
+    .task-card.dragging {
+      opacity: 0.4;
+      transform: scale(0.97);
+    }
+    .task-card.drag-over {
+      border-top: 3px solid var(--accent);
+      margin-top: -3px;
+    }
+
+    /* Drag handle */
+    .drag-handle {
+      cursor: grab;
+      color: var(--text-light);
+      font-size: 1.1rem;
+      padding: 4px 2px;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      transition: color 0.15s;
+    }
+    .drag-handle:hover { color: var(--accent); }
+    .drag-handle:active { cursor: grabbing; }
+    .drag-handle svg { width: 18px; height: 18px; fill: currentColor; }
+
+    /* Order number */
+    .order-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--badge-bg);
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
 
     .task-info { flex: 1; min-width: 0; }
     .task-title {
@@ -307,6 +358,29 @@
       cursor: pointer;
     }
     .btn-save:hover { background: var(--accent-hover); }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1a1a2e;
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      opacity: 0;
+      transition: transform 0.3s, opacity 0.3s;
+      z-index: 200;
+    }
+    [data-theme="dark"] .toast { background: #444; }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
@@ -359,12 +433,27 @@
       </div>
     </div>
 
+    {% if tasks and not search_query %}
+    <div class="drag-hint">Drag tasks to reorder priority</div>
+    {% endif %}
+
     <!-- Task list -->
-    <div class="task-list">
+    <div class="task-list" id="taskList">
       {% if tasks %}
+        {% set pending_counter = [0] %}
         {% for task in tasks %}
         {% set is_overdue = task.due and task.status == 'pending' and task.due < today %}
-        <div class="task-card {{ 'done-card' if task.status == 'done' else 'priority-' + task.priority }} {{ 'overdue' if is_overdue }}">
+        {% if task.status == 'pending' %}{% if pending_counter.append(pending_counter.pop() + 1) %}{% endif %}{% endif %}
+        <div class="task-card {{ 'done-card' if task.status == 'done' else 'priority-' + task.priority }} {{ 'overdue' if is_overdue }}"
+             data-id="{{ task.id }}"
+             data-status="{{ task.status }}"
+             {% if task.status == 'pending' %}draggable="true"{% endif %}>
+          {% if task.status == 'pending' %}
+          <div class="drag-handle" title="Drag to reorder">
+            <svg viewBox="0 0 24 24"><path d="M9 5h2v2H9zm4 0h2v2h-2zM9 9h2v2H9zm4 0h2v2h-2zm-4 4h2v2H9zm4 0h2v2h-2zm-4 4h2v2H9zm4 0h2v2h-2z"/></svg>
+          </div>
+          <div class="order-num">{{ pending_counter[0] }}</div>
+          {% endif %}
           <div class="task-info">
             <div class="task-title">{{ task.title }}</div>
             <div class="task-meta">
@@ -433,12 +522,14 @@
     </div>
   </div>
 
+  <!-- Toast -->
+  <div class="toast" id="toast">Order saved</div>
+
   <script>
-    // Dark mode
+    // ====== Dark mode ======
     function toggleTheme() {
       const html = document.documentElement;
-      const current = html.getAttribute('data-theme');
-      const next = current === 'dark' ? 'light' : 'dark';
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       html.setAttribute('data-theme', next);
       localStorage.setItem('theme', next);
       document.querySelector('.theme-toggle').textContent = next === 'dark' ? '☀️' : '🌙';
@@ -451,7 +542,7 @@
       }
     })();
 
-    // Edit modal
+    // ====== Edit modal ======
     function openEdit(task) {
       document.getElementById('editForm').action = '/edit/' + task.id;
       document.getElementById('editTitle').value = task.title;
@@ -466,6 +557,151 @@
     document.getElementById('editModal').addEventListener('click', function(e) {
       if (e.target === this) closeEdit();
     });
+
+    // ====== Toast ======
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1800);
+    }
+
+    // ====== Drag and Drop ======
+    (function() {
+      const list = document.getElementById('taskList');
+      if (!list) return;
+
+      let dragEl = null;
+
+      list.addEventListener('dragstart', function(e) {
+        const card = e.target.closest('.task-card[draggable="true"]');
+        if (!card) return;
+        dragEl = card;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', card.dataset.id);
+      });
+
+      list.addEventListener('dragend', function(e) {
+        const card = e.target.closest('.task-card');
+        if (card) card.classList.remove('dragging');
+        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        dragEl = null;
+      });
+
+      list.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const target = e.target.closest('.task-card[draggable="true"]');
+        if (!target || target === dragEl) return;
+        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        target.classList.add('drag-over');
+      });
+
+      list.addEventListener('dragleave', function(e) {
+        const target = e.target.closest('.task-card');
+        if (target) target.classList.remove('drag-over');
+      });
+
+      list.addEventListener('drop', function(e) {
+        e.preventDefault();
+        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        const target = e.target.closest('.task-card[draggable="true"]');
+        if (!target || !dragEl || target === dragEl) return;
+
+        // Reorder in DOM
+        const cards = [...list.querySelectorAll('.task-card[draggable="true"]')];
+        const dragIdx = cards.indexOf(dragEl);
+        const targetIdx = cards.indexOf(target);
+
+        if (dragIdx < targetIdx) {
+          target.after(dragEl);
+        } else {
+          target.before(dragEl);
+        }
+
+        // Update order numbers
+        const reordered = [...list.querySelectorAll('.task-card[draggable="true"]')];
+        reordered.forEach((card, i) => {
+          const numEl = card.querySelector('.order-num');
+          if (numEl) numEl.textContent = i + 1;
+        });
+
+        // Send new order to server
+        const newOrder = reordered.map(c => parseInt(c.dataset.id));
+        fetch('/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order: newOrder }),
+        }).then(() => showToast('Order saved'));
+      });
+
+      // ====== Touch drag support for mobile ======
+      let touchEl = null;
+      let touchClone = null;
+      let touchStartY = 0;
+
+      list.addEventListener('touchstart', function(e) {
+        const handle = e.target.closest('.drag-handle');
+        if (!handle) return;
+        const card = handle.closest('.task-card[draggable="true"]');
+        if (!card) return;
+        touchEl = card;
+        touchStartY = e.touches[0].clientY;
+        e.preventDefault();
+      }, { passive: false });
+
+      list.addEventListener('touchmove', function(e) {
+        if (!touchEl) return;
+        e.preventDefault();
+        const touchY = e.touches[0].clientY;
+        const cards = [...list.querySelectorAll('.task-card[draggable="true"]')];
+
+        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        touchEl.classList.add('dragging');
+
+        for (const card of cards) {
+          if (card === touchEl) continue;
+          const rect = card.getBoundingClientRect();
+          if (touchY > rect.top && touchY < rect.bottom) {
+            card.classList.add('drag-over');
+            break;
+          }
+        }
+      }, { passive: false });
+
+      list.addEventListener('touchend', function(e) {
+        if (!touchEl) return;
+        touchEl.classList.remove('dragging');
+        const target = document.querySelector('.task-card.drag-over');
+        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+
+        if (target && target !== touchEl) {
+          const cards = [...list.querySelectorAll('.task-card[draggable="true"]')];
+          const dragIdx = cards.indexOf(touchEl);
+          const targetIdx = cards.indexOf(target);
+          if (dragIdx < targetIdx) {
+            target.after(touchEl);
+          } else {
+            target.before(touchEl);
+          }
+
+          const reordered = [...list.querySelectorAll('.task-card[draggable="true"]')];
+          reordered.forEach((card, i) => {
+            const numEl = card.querySelector('.order-num');
+            if (numEl) numEl.textContent = i + 1;
+          });
+
+          const newOrder = reordered.map(c => parseInt(c.dataset.id));
+          fetch('/reorder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order: newOrder }),
+          }).then(() => showToast('Order saved'));
+        }
+        touchEl = null;
+      });
+    })();
   </script>
 </body>
 </html>

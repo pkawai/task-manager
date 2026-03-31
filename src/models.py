@@ -1,7 +1,7 @@
 from datetime import datetime
 
 
-def make_task(id, title, priority="medium", due=None, tag=None):
+def make_task(id, title, priority="medium", due=None, tag=None, order=None):
     return {
         "id": id,
         "title": title,
@@ -9,6 +9,7 @@ def make_task(id, title, priority="medium", due=None, tag=None):
         "priority": priority,
         "due": due,
         "tag": tag,
+        "order": order if order is not None else id,
         "created_at": datetime.now().isoformat(timespec="seconds"),
     }
 
@@ -19,12 +20,12 @@ def next_id(tasks):
     return max(t["id"] for t in tasks) + 1
 
 
-PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
-
-
 def sort_tasks(tasks):
-    """Sort: pending before done, then high > medium > low priority."""
+    """Sort: pending before done, then by manual order."""
+    for t in tasks:
+        if "order" not in t or t["order"] is None:
+            t["order"] = t["id"]
     return sorted(tasks, key=lambda t: (
         0 if t["status"] == "pending" else 1,
-        PRIORITY_ORDER.get(t.get("priority", "medium"), 1),
+        t["order"],
     ))

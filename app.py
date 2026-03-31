@@ -1,9 +1,13 @@
 from datetime import date
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, Response
+import json
 from src.models import make_task, next_id, sort_tasks
 from src.storage import load_tasks, save_tasks
 
 app = Flask(__name__)
+
+# Store last deleted task for undo
+last_deleted = {"task": None}
 
 
 @app.route("/")
@@ -30,11 +34,13 @@ def index():
 
     filtered = sort_tasks(filtered)
 
-    counts = {
-        "all": len(tasks),
-        "pending": sum(1 for t in tasks if t["status"] == "pending"),
-        "done": sum(1 for t in tasks if t["status"] == "done"),
-    }
+    total = len(tasks)
+    pending = sum(1 for t in tasks if t["status"] == "pending")
+    done_count = sum(1 for t in tasks if t["status"] == "done")
+    overdue = sum(1 for t in tasks if t["status"] == "pending" and t.get("due") and t["due"] < date.today().isoformat())
+    progress = round((done_count / total * 100)) if total > 0 else 0
+
+    counts = {"all": total, "pending": pending, "done": done_count}
 
     all_tags = sorted(set(t.get("tag") for t in tasks if t.get("tag")))
 
@@ -46,6 +52,9 @@ def index():
         search_query=search_query,
         today=date.today().isoformat(),
         all_tags=all_tags,
+        progress=progress,
+        overdue=overdue,
+        can_undo=last_deleted["task"] is not None,
     )
 
 
@@ -58,7 +67,6 @@ def add():
     if title:
         tasks = load_tasks()
         new_id = next_id(tasks)
-        # New tasks get order 0 (top of list), shift others down
         for t in tasks:
             if t["status"] == "pending":
                 t["order"] = t.get("order", t["id"]) + 1
@@ -85,7 +93,6 @@ def edit(task_id):
 
 @app.route("/reorder", methods=["POST"])
 def reorder():
-    """Accept a JSON list of task IDs in their new display order."""
     data = request.get_json()
     task_ids = data.get("order", [])
     tasks = load_tasks()
@@ -110,9 +117,56 @@ def done(task_id):
 
 @app.route("/delete/<int:task_id>", methods=["POST"])
 def delete(task_id):
-    tasks = [t for t in load_tasks() if t["id"] != task_id]
-    save_tasks(tasks)
+    tasks = load_tasks()
+    deleted = None
+    remaining = []
+    for t in tasks:
+        if t["id"] == task_id:
+            deleted = t
+        else:
+            remaining.append(t)
+    if deleted:
+        last_deleted["task"] = deleted
+    save_tasks(remaining)
     return redirect(request.referrer or url_for("index"))
+
+
+@app.route("/undo", methods=["POST"])
+def undo():
+    if last_deleted["task"]:
+        tasks = load_tasks()
+        tasks.append(last_deleted["task"])
+        save_tasks(tasks)
+        last_deleted["task"] = None
+    return redirect(url_for("index"))
+
+
+@app.route("/clear-done", methods=["POST"])
+def clear_done():
+    tasks = [t for t in load_tasks() if t["status"] != "done"]
+    save_tasks(tasks)
+    return redirect(url_for("index"))
+
+
+@app.route("/export")
+def export_tasks():
+    tasks = load_tasks()
+    data = json.dumps(tasks, indent=2)
+    return Response(
+        data,
+        mimetype="application/json",
+        headers={"Content-Disposition": "attachment;filename=tasks.json"},
+    )
+
+
+@app.route("/import", methods=["POST"])
+def import_tasks():
+    file = request.files.get("file")
+    if file and file.filename.endswith(".json"):
+        data = json.load(file)
+        if isinstance(data, list):
+            save_tasks(data)
+    return redirect(url_for("index"))
 
 
 if __name__ == "__main__":

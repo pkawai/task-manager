@@ -4,151 +4,201 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Task Manager{% if counts.pending %} ({{ counts.pending }} pending){% endif %}</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #f0f2f5;
-      --card: #fff;
-      --text: #1a1a2e;
-      --text-muted: #555;
-      --text-light: #999;
-      --border: #e0e0e0;
+      --bg: #f5f6fa;
+      --card: #ffffff;
+      --text: #1e1e2e;
+      --text-muted: #64648c;
+      --text-light: #a0a0b8;
+      --border: #e4e4f0;
       --accent: #6c63ff;
-      --accent-hover: #574fd6;
-      --shadow: rgba(0,0,0,0.07);
-      --shadow-hover: rgba(0,0,0,0.1);
-      --badge-bg: #f0f2f5;
+      --accent-hover: #5a52e0;
+      --accent-light: #ede9ff;
+      --shadow-sm: 0 1px 4px rgba(0,0,0,0.04);
+      --shadow: 0 2px 12px rgba(0,0,0,0.06);
+      --shadow-hover: 0 6px 20px rgba(0,0,0,0.1);
+      --badge-bg: #f0f0f8;
       --drop-zone: #e8e6ff;
+      --green: #22c55e;
+      --green-bg: #dcfce7;
+      --red: #ef4444;
+      --red-bg: #fee2e2;
+      --yellow: #f59e0b;
+      --yellow-bg: #fef3c7;
+      --blue: #3b82f6;
+      --blue-bg: #dbeafe;
+      --purple: #7c3aed;
+      --purple-bg: #ede9fe;
+      --radius: 14px;
     }
 
     [data-theme="dark"] {
-      --bg: #1a1a2e;
-      --card: #262640;
-      --text: #e0e0e0;
-      --text-muted: #aaa;
-      --text-light: #777;
-      --border: #3a3a5c;
-      --shadow: rgba(0,0,0,0.3);
-      --shadow-hover: rgba(0,0,0,0.5);
-      --badge-bg: #33334d;
-      --drop-zone: #33305c;
+      --bg: #13131e;
+      --card: #1e1e30;
+      --text: #e4e4f0;
+      --text-muted: #9898b8;
+      --text-light: #5c5c7a;
+      --border: #2e2e48;
+      --accent-light: #2a2650;
+      --shadow-sm: 0 1px 4px rgba(0,0,0,0.2);
+      --shadow: 0 2px 12px rgba(0,0,0,0.25);
+      --shadow-hover: 0 6px 20px rgba(0,0,0,0.4);
+      --badge-bg: #28283e;
+      --drop-zone: #2a2650;
+      --green-bg: #14321e; --red-bg: #321414; --yellow-bg: #322814; --blue-bg: #141e32; --purple-bg: #221440;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      padding: 32px 16px;
+      padding: 0;
       transition: background 0.3s, color 0.3s;
     }
 
-    .container { max-width: 720px; margin: 0 auto; }
+    /* Hero header */
+    .hero {
+      background: linear-gradient(135deg, #6c63ff 0%, #9f7aea 100%);
+      padding: 28px 24px 36px;
+      color: #fff;
+      text-align: center;
+      position: relative;
+    }
+    [data-theme="dark"] .hero { background: linear-gradient(135deg, #3a35a0 0%, #5a3e9e 100%); }
+    .hero h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+    .hero-subtitle { font-size: 0.85rem; opacity: 0.8; margin-top: 4px; }
+    .hero-actions { position: absolute; top: 20px; right: 20px; display: flex; gap: 8px; }
+    .icon-btn {
+      background: rgba(255,255,255,0.18);
+      border: none;
+      border-radius: 10px;
+      padding: 8px 10px;
+      cursor: pointer;
+      color: #fff;
+      font-size: 1rem;
+      transition: background 0.2s;
+      text-decoration: none;
+    }
+    .icon-btn:hover { background: rgba(255,255,255,0.3); }
 
-    /* Header */
-    .header {
+    /* Stats bar */
+    .stats-bar {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+    .stat {
+      background: rgba(255,255,255,0.15);
+      border-radius: 10px;
+      padding: 8px 16px;
+      font-size: 0.82rem;
+      font-weight: 500;
+    }
+    .stat strong { font-size: 1.1rem; margin-right: 4px; }
+
+    /* Progress bar */
+    .progress-wrap {
+      max-width: 360px;
+      margin: 16px auto 0;
+    }
+    .progress-label {
+      font-size: 0.75rem;
+      opacity: 0.8;
+      margin-bottom: 5px;
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
     }
-    h1 { font-size: 1.8rem; font-weight: 700; }
-    h1 span { color: var(--accent); }
+    .progress-track {
+      height: 8px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #fff;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
 
-    .theme-toggle {
-      background: var(--card);
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      padding: 8px 14px;
-      cursor: pointer;
-      font-size: 1.1rem;
-      transition: all 0.2s;
-    }
-    .theme-toggle:hover { border-color: var(--accent); }
+    .container { max-width: 720px; margin: -20px auto 0; padding: 0 16px 40px; position: relative; z-index: 1; }
 
     /* Add form */
     .add-card {
       background: var(--card);
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 2px 12px var(--shadow);
-      margin-bottom: 20px;
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
     }
-    .add-card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: var(--text-muted); }
+    .add-card h2 { font-size: 0.88rem; font-weight: 600; margin-bottom: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
 
-    .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
-    .form-row input[type="text"], .form-row input[name="tag"] {
-      flex: 1 1 180px;
+    .form-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .input-field {
       padding: 10px 14px;
       border: 1.5px solid var(--border);
       border-radius: 10px;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       outline: none;
       background: var(--card);
       color: var(--text);
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .form-row input[type="text"]:focus, .form-row input[name="tag"]:focus { border-color: var(--accent); }
-
-    .form-row select, .form-row input[type="date"] {
-      padding: 10px 12px;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      font-size: 0.9rem;
-      background: var(--card);
-      color: var(--text);
-      outline: none;
-      cursor: pointer;
-      transition: border-color 0.2s;
-    }
-    .form-row select:focus, .form-row input[type="date"]:focus { border-color: var(--accent); }
-
-    .form-row input[name="tag"] { flex: 0 1 130px; }
+    .input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+    .form-row input[name="title"] { flex: 1 1 200px; }
+    .form-row input[name="tag"] { flex: 0 1 120px; }
+    .form-row select { cursor: pointer; }
 
     .btn-add {
-      padding: 10px 22px;
+      padding: 10px 20px;
       background: var(--accent);
       color: #fff;
       border: none;
       border-radius: 10px;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
       white-space: nowrap;
     }
-    .btn-add:hover { background: var(--accent-hover); }
+    .btn-add:hover { background: var(--accent-hover); box-shadow: 0 4px 12px rgba(108,99,255,0.35); }
     .btn-add:active { transform: scale(0.97); }
 
-    /* Search + Filters bar */
+    /* Toolbar */
     .toolbar {
       display: flex;
       gap: 10px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       flex-wrap: wrap;
       align-items: center;
     }
     .search-box {
-      flex: 1 1 200px;
-      padding: 9px 14px;
+      flex: 1 1 180px;
+      padding: 9px 14px 9px 36px;
       border: 1.5px solid var(--border);
       border-radius: 20px;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       outline: none;
-      background: var(--card);
+      background: var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23a0a0b8' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E") no-repeat 12px center;
       color: var(--text);
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .search-box:focus { border-color: var(--accent); }
+    .search-box:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
 
-    .filters { display: flex; gap: 8px; }
+    .filters { display: flex; gap: 6px; }
     .filter-btn {
-      padding: 7px 18px;
+      padding: 7px 16px;
       border-radius: 20px;
       border: 1.5px solid var(--border);
       background: var(--card);
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 500;
       cursor: pointer;
       color: var(--text-muted);
@@ -162,61 +212,84 @@
       display: inline-block;
       background: var(--badge-bg);
       color: var(--text-light);
-      font-size: 0.75rem;
-      font-weight: 600;
+      font-size: 0.72rem;
+      font-weight: 700;
       padding: 1px 7px;
       border-radius: 10px;
-      margin-left: 4px;
+      margin-left: 3px;
     }
     .filter-btn.active .count-badge { background: rgba(255,255,255,0.25); color: #fff; }
+
+    /* Secondary actions bar */
+    .actions-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .btn-sm {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.15s;
+      text-decoration: none;
+    }
+    .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-undo { border-color: var(--yellow); color: var(--yellow); }
+    .btn-undo:hover { background: var(--yellow-bg); }
+    .btn-clear { border-color: var(--red); color: var(--red); }
+    .btn-clear:hover { background: var(--red-bg); }
 
     /* Drag hint */
     .drag-hint {
       text-align: center;
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       color: var(--text-light);
       margin-bottom: 10px;
     }
 
     /* Task list */
-    .task-list { display: flex; flex-direction: column; gap: 10px; }
+    .task-list { display: flex; flex-direction: column; gap: 8px; }
 
     .task-card {
       background: var(--card);
-      border-radius: 14px;
-      padding: 16px 18px;
-      box-shadow: 0 1px 6px var(--shadow);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      box-shadow: var(--shadow-sm);
       display: flex;
       align-items: center;
-      gap: 12px;
-      transition: box-shadow 0.15s, opacity 0.15s, transform 0.15s;
+      gap: 10px;
+      transition: box-shadow 0.2s, opacity 0.2s, transform 0.2s;
       border-left: 4px solid transparent;
       user-select: none;
+      animation: slideIn 0.25s ease;
     }
-    .task-card:hover { box-shadow: 0 4px 14px var(--shadow-hover); }
-    .task-card.done-card { opacity: 0.55; border-left-color: #22c55e; }
-    .task-card.priority-high { border-left-color: #ef4444; }
-    .task-card.priority-medium { border-left-color: #f59e0b; }
-    .task-card.priority-low { border-left-color: #3b82f6; }
-    .task-card.done-card { border-left-color: #22c55e !important; }
-    .task-card.overdue { background: #fff5f5; }
-    [data-theme="dark"] .task-card.overdue { background: #3a2020; }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .task-card:hover { box-shadow: var(--shadow-hover); }
+    .task-card.done-card { opacity: 0.5; border-left-color: var(--green); }
+    .task-card.priority-high { border-left-color: var(--red); }
+    .task-card.priority-medium { border-left-color: var(--yellow); }
+    .task-card.priority-low { border-left-color: var(--blue); }
+    .task-card.done-card { border-left-color: var(--green) !important; }
+    .task-card.overdue { background: var(--red-bg); }
 
     /* Drag styles */
-    .task-card.dragging {
-      opacity: 0.4;
-      transform: scale(0.97);
-    }
-    .task-card.drag-over {
-      border-top: 3px solid var(--accent);
-      margin-top: -3px;
-    }
+    .task-card.dragging { opacity: 0.35; transform: scale(0.97); }
+    .task-card.drag-over { border-top: 3px solid var(--accent); margin-top: -3px; }
 
     /* Drag handle */
     .drag-handle {
       cursor: grab;
       color: var(--text-light);
-      font-size: 1.1rem;
       padding: 4px 2px;
       display: flex;
       align-items: center;
@@ -225,185 +298,175 @@
     }
     .drag-handle:hover { color: var(--accent); }
     .drag-handle:active { cursor: grabbing; }
-    .drag-handle svg { width: 18px; height: 18px; fill: currentColor; }
+    .drag-handle svg { width: 16px; height: 16px; fill: currentColor; }
 
-    /* Order number */
     .order-num {
-      width: 24px;
-      height: 24px;
+      width: 22px; height: 22px;
       border-radius: 50%;
       background: var(--badge-bg);
       color: var(--text-muted);
-      font-size: 0.72rem;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      font-size: 0.7rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
 
     .task-info { flex: 1; min-width: 0; }
     .task-title {
-      font-size: 0.97rem;
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 0.93rem; font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .done-card .task-title { text-decoration: line-through; color: var(--text-light); }
 
-    .task-meta {
-      display: flex;
-      gap: 6px;
-      margin-top: 5px;
-      flex-wrap: wrap;
-    }
+    .task-meta { display: flex; gap: 5px; margin-top: 4px; flex-wrap: wrap; }
     .badge {
-      font-size: 0.72rem;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 20px;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
+      font-size: 0.68rem; font-weight: 600;
+      padding: 2px 8px; border-radius: 20px;
+      text-transform: uppercase; letter-spacing: 0.04em;
     }
-    .badge-high { background: #fee2e2; color: #dc2626; }
-    .badge-medium { background: #fef3c7; color: #d97706; }
-    .badge-low { background: #dbeafe; color: #2563eb; }
-    .badge-done { background: #dcfce7; color: #16a34a; }
-    .badge-pending { background: #f3f4f6; color: #6b7280; }
+    .badge-high { background: var(--red-bg); color: var(--red); }
+    .badge-medium { background: var(--yellow-bg); color: var(--yellow); }
+    .badge-low { background: var(--blue-bg); color: var(--blue); }
+    .badge-done { background: var(--green-bg); color: var(--green); }
+    .badge-pending { background: var(--badge-bg); color: var(--text-light); }
     .badge-due { background: var(--badge-bg); color: var(--text-muted); }
-    .badge-overdue { background: #fee2e2; color: #dc2626; }
-    .badge-tag { background: #ede9fe; color: #7c3aed; }
-    [data-theme="dark"] .badge-tag { background: #3b2d6b; color: #b794f4; }
+    .badge-overdue { background: var(--red-bg); color: var(--red); font-weight: 700; }
+    .badge-tag { background: var(--purple-bg); color: var(--purple); }
 
-    .task-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .task-actions { display: flex; gap: 5px; flex-shrink: 0; }
 
     .btn-done, .btn-delete, .btn-edit {
-      padding: 6px 12px;
-      border-radius: 8px;
-      border: none;
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
+      padding: 5px 11px; border-radius: 8px; border: none;
+      font-size: 0.78rem; font-weight: 600; cursor: pointer;
       transition: background 0.15s, transform 0.1s;
     }
-    .btn-done { background: #dcfce7; color: #16a34a; }
+    .btn-done { background: var(--green-bg); color: var(--green); }
     .btn-done:hover { background: #bbf7d0; }
-    .btn-edit { background: #e0e7ff; color: #4338ca; }
-    .btn-edit:hover { background: #c7d2fe; }
-    .btn-delete { background: #fee2e2; color: #dc2626; }
+    .btn-edit { background: var(--blue-bg); color: var(--blue); }
+    .btn-edit:hover { background: #bfdbfe; }
+    .btn-delete { background: var(--red-bg); color: var(--red); }
     .btn-delete:hover { background: #fecaca; }
-    .btn-done:active, .btn-delete:active, .btn-edit:active { transform: scale(0.95); }
+    .btn-done:active, .btn-delete:active, .btn-edit:active { transform: scale(0.93); }
 
     .empty {
-      text-align: center;
-      padding: 48px 0;
-      color: var(--text-light);
-      font-size: 0.95rem;
+      text-align: center; padding: 56px 0;
+      color: var(--text-light); font-size: 0.93rem;
     }
-    .empty span { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+    .empty-icon { font-size: 3rem; display: block; margin-bottom: 12px; }
+    .empty-sub { font-size: 0.82rem; margin-top: 6px; }
 
     /* Edit modal */
     .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.4);
-      z-index: 100;
-      align-items: center;
-      justify-content: center;
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45); z-index: 100;
+      align-items: center; justify-content: center;
+      animation: fadeIn 0.15s;
     }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .modal-overlay.open { display: flex; }
     .modal {
-      background: var(--card);
-      border-radius: 16px;
-      padding: 28px;
-      width: 90%;
-      max-width: 440px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+      background: var(--card); border-radius: 18px;
+      padding: 28px; width: 90%; max-width: 420px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+      animation: scaleIn 0.2s ease;
     }
+    @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     .modal h2 { font-size: 1.1rem; margin-bottom: 18px; color: var(--text); }
-    .modal label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 4px; color: var(--text-muted); }
+    .modal label { display: block; font-size: 0.82rem; font-weight: 500; margin-bottom: 4px; color: var(--text-muted); }
     .modal input, .modal select {
-      width: 100%;
-      padding: 9px 12px;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      font-size: 0.9rem;
-      background: var(--card);
-      color: var(--text);
-      margin-bottom: 14px;
-      outline: none;
+      width: 100%; padding: 9px 12px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: 0.9rem; background: var(--card); color: var(--text);
+      margin-bottom: 14px; outline: none;
     }
-    .modal input:focus, .modal select:focus { border-color: var(--accent); }
+    .modal input:focus, .modal select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
     .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
     .btn-cancel {
-      padding: 9px 20px;
-      border-radius: 10px;
-      border: 1.5px solid var(--border);
-      background: transparent;
-      color: var(--text-muted);
-      font-size: 0.9rem;
-      font-weight: 500;
-      cursor: pointer;
+      padding: 9px 20px; border-radius: 10px;
+      border: 1.5px solid var(--border); background: transparent;
+      color: var(--text-muted); font-size: 0.9rem; font-weight: 500; cursor: pointer;
     }
     .btn-save {
-      padding: 9px 20px;
-      border-radius: 10px;
-      border: none;
-      background: var(--accent);
-      color: #fff;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
+      padding: 9px 20px; border-radius: 10px; border: none;
+      background: var(--accent); color: #fff;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer;
     }
     .btn-save:hover { background: var(--accent-hover); }
 
-    /* Toast notification */
+    /* Import modal */
+    .import-input { margin-top: 8px; }
+
+    /* Toast */
     .toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
+      position: fixed; bottom: 24px; left: 50%;
       transform: translateX(-50%) translateY(80px);
-      background: #1a1a2e;
-      color: #fff;
-      padding: 10px 24px;
-      border-radius: 10px;
-      font-size: 0.88rem;
-      font-weight: 500;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-      opacity: 0;
-      transition: transform 0.3s, opacity 0.3s;
-      z-index: 200;
+      background: #1e1e2e; color: #fff;
+      padding: 10px 24px; border-radius: 10px;
+      font-size: 0.85rem; font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      opacity: 0; transition: transform 0.3s, opacity 0.3s; z-index: 200;
     }
     [data-theme="dark"] .toast { background: #444; }
-    .toast.show {
-      transform: translateX(-50%) translateY(0);
-      opacity: 1;
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    /* Footer */
+    .footer {
+      text-align: center; padding: 24px 0 12px;
+      font-size: 0.75rem; color: var(--text-light);
+    }
+
+    /* Keyboard shortcut hints */
+    kbd {
+      background: var(--badge-bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 1px 5px; font-size: 0.72rem;
+      font-family: inherit; color: var(--text-light);
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- Header with dark mode toggle -->
-    <div class="header">
-      <h1>Task <span>Manager</span></h1>
-      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+  <!-- Hero header -->
+  <div class="hero">
+    <div class="hero-actions">
+      <a href="/export" class="icon-btn" title="Export tasks">📥</a>
+      <button class="icon-btn" onclick="document.getElementById('importModal').classList.add('open')" title="Import tasks">📤</button>
+      <button class="icon-btn" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn">🌙</button>
     </div>
+    <h1>Task Manager</h1>
+    <p class="hero-subtitle">Stay organized, get things done</p>
+    <div class="stats-bar">
+      <div class="stat"><strong>{{ counts.all }}</strong> total</div>
+      <div class="stat"><strong>{{ counts.pending }}</strong> pending</div>
+      <div class="stat"><strong>{{ counts.done }}</strong> done</div>
+      {% if overdue > 0 %}
+      <div class="stat" style="background:rgba(239,68,68,0.3)"><strong>{{ overdue }}</strong> overdue</div>
+      {% endif %}
+    </div>
+    {% if counts.all > 0 %}
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>Progress</span>
+        <span>{{ progress }}%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: {{ progress }}%"></div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
 
+  <div class="container">
     <!-- Add task form -->
     <div class="add-card">
       <h2>New Task</h2>
-      <form action="/add" method="POST">
+      <form action="/add" method="POST" id="addForm">
         <div class="form-row">
-          <input name="title" type="text" placeholder="What needs to be done?" required autofocus />
-          <select name="priority">
+          <input name="title" type="text" class="input-field" placeholder="What needs to be done?" required autofocus />
+          <select name="priority" class="input-field">
             <option value="low">Low</option>
             <option value="medium" selected>Medium</option>
             <option value="high">High</option>
           </select>
-          <input name="due" type="date" />
-          <input name="tag" type="text" placeholder="Tag" list="tag-list" />
+          <input name="due" type="date" class="input-field" />
+          <input name="tag" type="text" class="input-field" placeholder="Tag" list="tag-list" />
           <datalist id="tag-list">
             {% for tag in all_tags %}
             <option value="{{ tag }}">
@@ -416,7 +479,7 @@
 
     <!-- Search + Filter bar -->
     <div class="toolbar">
-      <form action="/" method="GET" style="flex:1 1 200px; display:flex;">
+      <form action="/" method="GET" style="flex:1 1 180px; display:flex;">
         <input type="hidden" name="status" value="{{ status_filter }}" />
         <input class="search-box" name="q" type="text" placeholder="Search tasks..." value="{{ search_query }}" />
       </form>
@@ -433,6 +496,20 @@
       </div>
     </div>
 
+    <!-- Secondary actions -->
+    <div class="actions-bar">
+      {% if can_undo %}
+      <form action="/undo" method="POST" style="display:inline;">
+        <button type="submit" class="btn-sm btn-undo">Undo delete</button>
+      </form>
+      {% endif %}
+      {% if counts.done > 0 %}
+      <form action="/clear-done" method="POST" style="display:inline;">
+        <button type="submit" class="btn-sm btn-clear">Clear completed ({{ counts.done }})</button>
+      </form>
+      {% endif %}
+    </div>
+
     {% if tasks and not search_query %}
     <div class="drag-hint">Drag tasks to reorder priority</div>
     {% endif %}
@@ -445,8 +522,7 @@
         {% set is_overdue = task.due and task.status == 'pending' and task.due < today %}
         {% if task.status == 'pending' %}{% if pending_counter.append(pending_counter.pop() + 1) %}{% endif %}{% endif %}
         <div class="task-card {{ 'done-card' if task.status == 'done' else 'priority-' + task.priority }} {{ 'overdue' if is_overdue }}"
-             data-id="{{ task.id }}"
-             data-status="{{ task.status }}"
+             data-id="{{ task.id }}" data-status="{{ task.status }}"
              {% if task.status == 'pending' %}draggable="true"{% endif %}>
           {% if task.status == 'pending' %}
           <div class="drag-handle" title="Drag to reorder">
@@ -486,14 +562,19 @@
         {% endfor %}
       {% else %}
         <div class="empty">
-          <span>📋</span>
+          <span class="empty-icon">{% if search_query %}🔍{% else %}📝{% endif %}</span>
           {% if search_query %}
             No tasks matching "{{ search_query }}"
           {% else %}
-            No tasks here. Add one above!
+            No tasks yet — add your first one above!
           {% endif %}
+          <div class="empty-sub">{% if not search_query %}Press <kbd>Enter</kbd> to add a task{% endif %}</div>
         </div>
       {% endif %}
+    </div>
+
+    <div class="footer">
+      Task Manager &mdash; Built with Flask + Claude Code
     </div>
   </div>
 
@@ -522,6 +603,21 @@
     </div>
   </div>
 
+  <!-- Import Modal -->
+  <div class="modal-overlay" id="importModal">
+    <div class="modal">
+      <h2>Import Tasks</h2>
+      <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom: 14px;">Upload a JSON file previously exported from Task Manager.</p>
+      <form action="/import" method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".json" class="import-input" required />
+        <div class="modal-actions" style="margin-top: 16px;">
+          <button type="button" class="btn-cancel" onclick="document.getElementById('importModal').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn-save">Import</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div class="toast" id="toast">Order saved</div>
 
@@ -532,13 +628,13 @@
       const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       html.setAttribute('data-theme', next);
       localStorage.setItem('theme', next);
-      document.querySelector('.theme-toggle').textContent = next === 'dark' ? '☀️' : '🌙';
+      document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️' : '🌙';
     }
     (function() {
       const saved = localStorage.getItem('theme') || 'light';
       if (saved === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
-        document.querySelector('.theme-toggle').textContent = '☀️';
+        document.getElementById('themeBtn').textContent = '☀️';
       }
     })();
 
@@ -551,12 +647,9 @@
       document.getElementById('editTag').value = task.tag || '';
       document.getElementById('editModal').classList.add('open');
     }
-    function closeEdit() {
-      document.getElementById('editModal').classList.remove('open');
-    }
-    document.getElementById('editModal').addEventListener('click', function(e) {
-      if (e.target === this) closeEdit();
-    });
+    function closeEdit() { document.getElementById('editModal').classList.remove('open'); }
+    document.getElementById('editModal').addEventListener('click', function(e) { if (e.target === this) closeEdit(); });
+    document.getElementById('importModal').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
 
     // ====== Toast ======
     function showToast(msg) {
@@ -570,7 +663,6 @@
     (function() {
       const list = document.getElementById('taskList');
       if (!list) return;
-
       let dragEl = null;
 
       list.addEventListener('dragstart', function(e) {
@@ -609,45 +701,32 @@
         const target = e.target.closest('.task-card[draggable="true"]');
         if (!target || !dragEl || target === dragEl) return;
 
-        // Reorder in DOM
         const cards = [...list.querySelectorAll('.task-card[draggable="true"]')];
         const dragIdx = cards.indexOf(dragEl);
         const targetIdx = cards.indexOf(target);
+        if (dragIdx < targetIdx) { target.after(dragEl); } else { target.before(dragEl); }
 
-        if (dragIdx < targetIdx) {
-          target.after(dragEl);
-        } else {
-          target.before(dragEl);
-        }
-
-        // Update order numbers
         const reordered = [...list.querySelectorAll('.task-card[draggable="true"]')];
         reordered.forEach((card, i) => {
           const numEl = card.querySelector('.order-num');
           if (numEl) numEl.textContent = i + 1;
         });
 
-        // Send new order to server
-        const newOrder = reordered.map(c => parseInt(c.dataset.id));
         fetch('/reorder', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order: newOrder }),
+          body: JSON.stringify({ order: reordered.map(c => parseInt(c.dataset.id)) }),
         }).then(() => showToast('Order saved'));
       });
 
-      // ====== Touch drag support for mobile ======
+      // Touch drag
       let touchEl = null;
-      let touchClone = null;
-      let touchStartY = 0;
-
       list.addEventListener('touchstart', function(e) {
         const handle = e.target.closest('.drag-handle');
         if (!handle) return;
         const card = handle.closest('.task-card[draggable="true"]');
         if (!card) return;
         touchEl = card;
-        touchStartY = e.touches[0].clientY;
         e.preventDefault();
       }, { passive: false });
 
@@ -655,18 +734,12 @@
         if (!touchEl) return;
         e.preventDefault();
         const touchY = e.touches[0].clientY;
-        const cards = [...list.querySelectorAll('.task-card[draggable="true"]')];
-
         document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
         touchEl.classList.add('dragging');
-
-        for (const card of cards) {
+        for (const card of list.querySelectorAll('.task-card[draggable="true"]')) {
           if (card === touchEl) continue;
           const rect = card.getBoundingClientRect();
-          if (touchY > rect.top && touchY < rect.bottom) {
-            card.classList.add('drag-over');
-            break;
-          }
+          if (touchY > rect.top && touchY < rect.bottom) { card.classList.add('drag-over'); break; }
         }
       }, { passive: false });
 
@@ -675,28 +748,15 @@
         touchEl.classList.remove('dragging');
         const target = document.querySelector('.task-card.drag-over');
         document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-
         if (target && target !== touchEl) {
           const cards = [...list.querySelectorAll('.task-card[draggable="true"]')];
-          const dragIdx = cards.indexOf(touchEl);
-          const targetIdx = cards.indexOf(target);
-          if (dragIdx < targetIdx) {
-            target.after(touchEl);
-          } else {
-            target.before(touchEl);
-          }
-
+          if (cards.indexOf(touchEl) < cards.indexOf(target)) { target.after(touchEl); } else { target.before(touchEl); }
           const reordered = [...list.querySelectorAll('.task-card[draggable="true"]')];
-          reordered.forEach((card, i) => {
-            const numEl = card.querySelector('.order-num');
-            if (numEl) numEl.textContent = i + 1;
-          });
-
-          const newOrder = reordered.map(c => parseInt(c.dataset.id));
+          reordered.forEach((card, i) => { const n = card.querySelector('.order-num'); if (n) n.textContent = i + 1; });
           fetch('/reorder', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ order: newOrder }),
+            body: JSON.stringify({ order: reordered.map(c => parseInt(c.dataset.id)) }),
           }).then(() => showToast('Order saved'));
         }
         touchEl = null;
